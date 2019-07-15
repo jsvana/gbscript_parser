@@ -64,7 +64,7 @@ class ParserTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             parsing.parse_list('["asdf", "fdsa"')
 
-    def test_argument(self) -> None:
+    def test_parse_argument(self) -> None:
         argument, consumption = parsing.parse_argument('asdf="foobar")')
 
         self.assertEqual(argument, parsing.Argument(name="asdf", values=["foobar"]))
