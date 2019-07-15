@@ -10,7 +10,7 @@ class Block(NamedTuple):
 
 class Argument(NamedTuple):
     name: str
-    value: str
+    values: List[str]
 
 
 class Function(NamedTuple):
@@ -47,6 +47,38 @@ def parse_string(content: str) -> Tuple[str, str]:
     raise ValueError(f'Unterminated string "{ret}"')
 
 
+def parse_list(content: str) -> Tuple[List[str], str]:
+    if content[0] != "[":
+        raise ValueError("Attempted to parse non-list")
+
+    content = content[1:]
+
+    found_end = False
+    elements = []
+    while content and content[0] != "]" and not found_end:
+        element, content = parse_string(content)
+        if not content:
+            raise ValueError("Malformed list")
+
+        if content[0] not in {",", "]"}:
+            raise ValueError("Malformed list")
+
+        if content[0] == "]":
+            found_end = True
+
+        content = content[1:]
+
+        i = 0
+        while content and content[i] == " ":
+            i += 1
+
+        content = content[i:]
+
+        elements.append(element)
+
+    return elements, content
+
+
 def parse_argument(content: str) -> Tuple[Argument, str]:
     name, content = read_word(content)
     if not content:
@@ -59,10 +91,14 @@ def parse_argument(content: str) -> Tuple[Argument, str]:
 
     if content[0] == '"':
         value, content = parse_string(content)
+        values = [value]
+    elif content[0] == "[":
+        values, content = parse_list(content)
     else:
         value, content = read_word(content)
+        values = [value]
 
-    return Argument(name, value), content
+    return Argument(name, values), content
 
 
 def parse_arguments(content: str) -> Tuple[List[Argument], str]:
