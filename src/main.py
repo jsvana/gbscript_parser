@@ -1,5 +1,11 @@
 import sys
-from typing import List, NamedTuple, Tuple
+from typing import Any, List, NamedTuple, Optional, Tuple
+
+
+class Block(NamedTuple):
+    # Should be List[Function] but mypy doesn't support
+    # recursive types
+    functions: List[Any]
 
 
 class Argument(NamedTuple):
@@ -10,6 +16,7 @@ class Argument(NamedTuple):
 class Function(NamedTuple):
     name: str
     arguments: List[Argument]
+    block: Optional[Block]
 
 
 def read_word(content: str) -> Tuple[str, str]:
@@ -89,16 +96,16 @@ def parse_function(content: str) -> Function:
     if not content:
         raise ValueError(f'Malformed function with name "{name}"')
     if content == ")":
-        return Function(name=name, arguments=[])
+        return Function(name=name, arguments=[], block=None)
 
     arguments, content = parse_arguments(content)
     if content:
         raise ValueError(f'Malformed function with name "{name}"')
 
-    return Function(name=name, arguments=arguments)
+    return Function(name=name, arguments=arguments, block=None)
 
 
-def parse(content: str) -> List[Function]:
+def parse(content: str) -> Block:
     lines = content.split("\n")
     functions = []
     for line in lines:
@@ -107,7 +114,7 @@ def parse(content: str) -> List[Function]:
 
         functions.append(parse_function(line))
 
-    return functions
+    return Block(functions=functions)
 
 
 def main():
@@ -116,9 +123,9 @@ def main():
         return 1
 
     with open(sys.argv[1]) as f:
-        functions = parse(f.read())
+        block = parse(f.read())
 
-    print(functions)
+    print(block)
 
     return 0
 
