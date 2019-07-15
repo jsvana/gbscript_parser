@@ -1,5 +1,0 @@
-EVENT_ACTOR_HIDE(actorId="player")
-EVENT_AWAIT_INPUT(input=["a", "b", "select", "start"])
-EVENT_TEXT(text="New game...")
-EVENT_SWITCH_SCENE(sceneId="scene_one", x="0", y="0", direction="", fadeSpeed="2")
-EVENT_END()
