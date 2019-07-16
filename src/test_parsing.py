@@ -284,6 +284,26 @@ class ParserTests(unittest.TestCase):
             ),
         )
 
+        block = parsing.parse('foo(asdf="bar")\nfunc2(a=["a", "b"])\nEVENT_END()\n')
+        self.assertEqual(
+            block,
+            parsing.Block(
+                functions=[
+                    parsing.Function(
+                        name="foo",
+                        arguments=[parsing.Argument(name="asdf", values=["bar"])],
+                        block=None,
+                    ),
+                    parsing.Function(
+                        name="func2",
+                        arguments=[parsing.Argument(name="a", values=["a", "b"])],
+                        block=None,
+                    ),
+                    parsing.Function(name="EVENT_END", arguments=[], block=None),
+                ]
+            ),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
