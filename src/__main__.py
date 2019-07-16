@@ -9,7 +9,11 @@ def main():
         return 1
 
     with open(sys.argv[1]) as f:
-        block = parse(f.read())
+        try:
+            block = parse(f.read())
+        except ValueError as e:
+            print(f'Error parsing "{sys.argv[1]}": {e}', file=sys.stderr)
+            return 1
 
     print(block)
 
