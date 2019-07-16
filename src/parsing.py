@@ -1,15 +1,15 @@
 from typing import Any, List, NamedTuple, Optional, Tuple
 
 
-class ParseContext(NamedTuple):
+class Context(NamedTuple):
     line: int
     base_character: int
 
     def info_str(self, offset: int) -> str:
         return f"line {self.line + 1}, character {self.base_character + offset + 1}"
 
-    def from_self_with_offset(self, offset: int) -> "ParseContext":
-        return ParseContext(line=self.line, base_character=self.base_character + offset)
+    def from_self_with_offset(self, offset: int) -> "Context":
+        return Context(line=self.line, base_character=self.base_character + offset)
 
 
 class Consumption(NamedTuple):
@@ -47,7 +47,7 @@ def read_word(content: str) -> Tuple[str, Consumption]:
     return word, Consumption(consumed, "")
 
 
-def parse_string(context: ParseContext, content: str) -> Tuple[str, Consumption]:
+def parse_string(context: Context, content: str) -> Tuple[str, Consumption]:
     if content[0] != '"':
         raise ValueError(
             "Attempted to parse non-string at {}".format(context.info_str(0))
@@ -74,7 +74,7 @@ def parse_string(context: ParseContext, content: str) -> Tuple[str, Consumption]
     )
 
 
-def parse_list(context: ParseContext, content: str) -> Tuple[List[str], Consumption]:
+def parse_list(context: Context, content: str) -> Tuple[List[str], Consumption]:
     if content[0] != "[":
         raise ValueError("Attempted to parse non-list")
 
@@ -117,7 +117,7 @@ def parse_list(context: ParseContext, content: str) -> Tuple[List[str], Consumpt
     return elements, Consumption(consumed, content)
 
 
-def parse_argument(context: ParseContext, content: str) -> Tuple[Argument, Consumption]:
+def parse_argument(context: Context, content: str) -> Tuple[Argument, Consumption]:
     name, consumption = read_word(content)
     content = consumption.trailing
     consumed = consumption.consumed
@@ -156,7 +156,7 @@ def parse_argument(context: ParseContext, content: str) -> Tuple[Argument, Consu
 
 
 def parse_arguments(
-    context: ParseContext, content: str
+    context: Context, content: str
 ) -> Tuple[List[Argument], Consumption]:
     if content[0] != "(":
         raise ValueError(
@@ -213,7 +213,7 @@ def parse_arguments(
     return arguments, Consumption(consumed, content)
 
 
-def parse_function(context: ParseContext, content: str) -> Function:
+def parse_function(context: Context, content: str) -> Function:
     name, consumption = read_word(content)
     content = consumption.trailing
     consumed = consumption.consumed
@@ -225,7 +225,7 @@ def parse_function(context: ParseContext, content: str) -> Function:
         )
 
     arguments, consumption = parse_arguments(
-        ParseContext(line=context.line, base_character=consumed), content
+        Context(line=context.line, base_character=consumed), content
     )
     content = consumption.trailing
     consumed += consumption.consumed
@@ -246,6 +246,10 @@ def parse(content: str) -> Block:
         if not line:
             continue
 
-        functions.append(parse_function(ParseContext(line=i, base_character=0), line))
+        c = 0
+        while line[c] == " ":
+            c += 1
+
+        functions.append(parse_function(Context(line=i, base_character=c), line[c:]))
 
     return Block(functions=functions)

@@ -2,7 +2,7 @@ import unittest
 
 from . import parsing
 
-FAKE_CONTEXT = parsing.ParseContext(line=0, base_character=0)
+FAKE_CONTEXT = parsing.Context(line=0, base_character=0)
 
 
 class ParserTests(unittest.TestCase):
@@ -200,7 +200,7 @@ class ParserTests(unittest.TestCase):
             parsing.parse_arguments(FAKE_CONTEXT, '(asdf="foo", fdsa="bar",)')
 
     def test_parse_function(self) -> None:
-        function = parsing.parse_function(parsing.ParseContext(0, 0), 'foo(asdf="bar")')
+        function = parsing.parse_function(parsing.Context(0, 0), 'foo(asdf="bar")')
 
         self.assertEqual(
             function,
@@ -211,17 +211,17 @@ class ParserTests(unittest.TestCase):
             ),
         )
 
-        function = parsing.parse_function(parsing.ParseContext(0, 0), "foo()")
+        function = parsing.parse_function(parsing.Context(0, 0), "foo()")
 
         self.assertEqual(
             function, parsing.Function(name="foo", arguments=[], block=None)
         )
 
         with self.assertRaises(ValueError):
-            parsing.parse_function(parsing.ParseContext(0, 0), "foo")
+            parsing.parse_function(parsing.Context(0, 0), "foo")
 
         with self.assertRaises(ValueError):
-            parsing.parse_function(parsing.ParseContext(0, 0), "foo()asdf")
+            parsing.parse_function(parsing.Context(0, 0), "foo()asdf")
 
     def test_parse(self) -> None:
         block = parsing.parse('foo(asdf="bar")\nfunc2(a="")')
