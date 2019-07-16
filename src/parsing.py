@@ -136,9 +136,15 @@ def parse_argument(content: str) -> Tuple[Argument, Consumption]:
 
 
 def parse_arguments(content: str) -> Tuple[List[Argument], Consumption]:
+    if content[0] != "(":
+        raise ValueError("Attempted to parse non-argument")
+
+    content = content[1:]
+    consumed = 1
+
+    found_end = False
     arguments = []
-    consumed = 0
-    while content and content[0] != ")":
+    while content and content[0] != ")" and not found_end:
         argument, consumption = parse_argument(content)
         content = consumption.trailing
         consumed += consumption.consumed
@@ -147,6 +153,9 @@ def parse_arguments(content: str) -> Tuple[List[Argument], Consumption]:
 
         if content[0] not in {",", ")"}:
             raise ValueError("Malformed function call")
+
+        if content[0] == ")":
+            found_end = True
 
         content = content[1:]
         consumed += 1
@@ -159,6 +168,10 @@ def parse_arguments(content: str) -> Tuple[List[Argument], Consumption]:
         content = content[i:]
 
         arguments.append(argument)
+
+    if not arguments:
+        content = content[1:]
+        consumed += 1
 
     return arguments, Consumption(consumed, content)
 
@@ -174,22 +187,9 @@ def parse_function(context: ParseContext, content: str) -> Function:
             )
         )
 
-    content = content[1:]
-    consumed += 1
-    if not content:
-        raise ValueError(
-            'Malformed function with name "{}" on {}'.format(
-                name, context.info_str(consumed)
-            )
-        )
-
-    if content == ")":
-        return Function(name=name, arguments=[], block=None)
-
     arguments, consumption = parse_arguments(content)
     content = consumption.trailing
     consumed += consumption.consumed
-    print(f"CONSUMED: {consumed}")
     if content:
         raise ValueError(
             'Malformed function with name "{}" on {}'.format(

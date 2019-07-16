@@ -109,6 +109,103 @@ class ParserTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             parsing.parse_argument('foo"bar"')
 
+    def test_parse_arguments(self) -> None:
+        arguments, consumption = parsing.parse_arguments('(asdf="foobar")asdf')
+
+        self.assertEqual(arguments, [parsing.Argument(name="asdf", values=["foobar"])])
+        self.assertEqual(consumption.consumed, 15)
+        self.assertEqual(consumption.trailing, "asdf")
+
+        arguments, consumption = parsing.parse_arguments('(asdf="")asdf')
+
+        self.assertEqual(arguments, [parsing.Argument(name="asdf", values=[""])])
+        self.assertEqual(consumption.consumed, 9)
+        self.assertEqual(consumption.trailing, "asdf")
+
+        arguments, consumption = parsing.parse_arguments('(asdf=[""])asdf')
+
+        self.assertEqual(arguments, [parsing.Argument(name="asdf", values=[""])])
+        self.assertEqual(consumption.consumed, 11)
+        self.assertEqual(consumption.trailing, "asdf")
+
+        arguments, consumption = parsing.parse_arguments("(asdf=[])asdf")
+
+        self.assertEqual(arguments, [parsing.Argument(name="asdf", values=[])])
+        self.assertEqual(consumption.consumed, 9)
+        self.assertEqual(consumption.trailing, "asdf")
+
+        arguments, consumption = parsing.parse_arguments('(asdf=[], fdsa="")asdf')
+
+        self.assertEqual(
+            arguments,
+            [
+                parsing.Argument(name="asdf", values=[]),
+                parsing.Argument(name="fdsa", values=[""]),
+            ],
+        )
+        self.assertEqual(consumption.consumed, 18)
+        self.assertEqual(consumption.trailing, "asdf")
+
+        arguments, consumption = parsing.parse_arguments('(asdf="", fdsa=[])asdf')
+
+        self.assertEqual(
+            arguments,
+            [
+                parsing.Argument(name="asdf", values=[""]),
+                parsing.Argument(name="fdsa", values=[]),
+            ],
+        )
+        self.assertEqual(consumption.consumed, 18)
+        self.assertEqual(consumption.trailing, "asdf")
+
+        arguments, consumption = parsing.parse_arguments('(asdf="foo", fdsa="bar")asdf')
+
+        self.assertEqual(
+            arguments,
+            [
+                parsing.Argument(name="asdf", values=["foo"]),
+                parsing.Argument(name="fdsa", values=["bar"]),
+            ],
+        )
+        self.assertEqual(consumption.consumed, 24)
+        self.assertEqual(consumption.trailing, "asdf")
+
+        with self.assertRaises(ValueError):
+            parsing.parse_arguments('(asdf="foo"')
+
+        with self.assertRaises(ValueError):
+            parsing.parse_arguments('(asdf="foo", fdsa="bar"')
+
+        with self.assertRaises(ValueError):
+            parsing.parse_arguments('(asdf="foo",asdf')
+
+        with self.assertRaises(ValueError):
+            parsing.parse_arguments('(asdf="foo", fdsa="bar",asdf')
+
+    def test_parse_function(self) -> None:
+        function = parsing.parse_function(parsing.ParseContext(0, 0), 'foo(asdf="bar")')
+
+        self.assertEqual(
+            function,
+            parsing.Function(
+                name="foo",
+                arguments=[parsing.Argument(name="asdf", values=["bar"])],
+                block=None,
+            ),
+        )
+
+        function = parsing.parse_function(parsing.ParseContext(0, 0), "foo()")
+
+        self.assertEqual(
+            function, parsing.Function(name="foo", arguments=[], block=None)
+        )
+
+        with self.assertRaises(ValueError):
+            parsing.parse_function(parsing.ParseContext(0, 0), "foo")
+
+        with self.assertRaises(ValueError):
+            parsing.parse_function(parsing.ParseContext(0, 0), "foo()asdf")
+
 
 if __name__ == "__main__":
     unittest.main()
