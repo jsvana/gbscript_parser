@@ -252,4 +252,7 @@ def parse(content: str) -> Block:
 
         functions.append(parse_function(Context(line=i, base_character=c), line[c:]))
 
+    if functions and functions[-1].name != "EVENT_END":
+        functions.append(Function(name="EVENT_END", arguments=[], block=None))
+
     return Block(functions=functions)

@@ -239,6 +239,7 @@ class ParserTests(unittest.TestCase):
                         arguments=[parsing.Argument(name="a", values=[""])],
                         block=None,
                     ),
+                    parsing.Function(name="EVENT_END", arguments=[], block=None),
                 ]
             ),
         )
@@ -258,6 +259,7 @@ class ParserTests(unittest.TestCase):
                         arguments=[parsing.Argument(name="a", values=[""])],
                         block=None,
                     ),
+                    parsing.Function(name="EVENT_END", arguments=[], block=None),
                 ]
             ),
         )
@@ -277,6 +279,7 @@ class ParserTests(unittest.TestCase):
                         arguments=[parsing.Argument(name="a", values=["a", "b"])],
                         block=None,
                     ),
+                    parsing.Function(name="EVENT_END", arguments=[], block=None),
                 ]
             ),
         )
