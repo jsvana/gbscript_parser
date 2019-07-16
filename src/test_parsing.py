@@ -223,6 +223,64 @@ class ParserTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             parsing.parse_function(parsing.ParseContext(0, 0), "foo()asdf")
 
+    def test_parse(self) -> None:
+        block = parsing.parse('foo(asdf="bar")\nfunc2(a="")')
+        self.assertEqual(
+            block,
+            parsing.Block(
+                functions=[
+                    parsing.Function(
+                        name="foo",
+                        arguments=[parsing.Argument(name="asdf", values=["bar"])],
+                        block=None,
+                    ),
+                    parsing.Function(
+                        name="func2",
+                        arguments=[parsing.Argument(name="a", values=[""])],
+                        block=None,
+                    ),
+                ]
+            ),
+        )
+
+        block = parsing.parse('foo(asdf="bar")\nfunc2(a="")\n')
+        self.assertEqual(
+            block,
+            parsing.Block(
+                functions=[
+                    parsing.Function(
+                        name="foo",
+                        arguments=[parsing.Argument(name="asdf", values=["bar"])],
+                        block=None,
+                    ),
+                    parsing.Function(
+                        name="func2",
+                        arguments=[parsing.Argument(name="a", values=[""])],
+                        block=None,
+                    ),
+                ]
+            ),
+        )
+
+        block = parsing.parse('foo(asdf="bar")\nfunc2(a=["a", "b"])\n')
+        self.assertEqual(
+            block,
+            parsing.Block(
+                functions=[
+                    parsing.Function(
+                        name="foo",
+                        arguments=[parsing.Argument(name="asdf", values=["bar"])],
+                        block=None,
+                    ),
+                    parsing.Function(
+                        name="func2",
+                        arguments=[parsing.Argument(name="a", values=["a", "b"])],
+                        block=None,
+                    ),
+                ]
+            ),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
