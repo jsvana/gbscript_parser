@@ -15,7 +15,8 @@ class Context(NamedTuple):
 
 
 class Consumption(NamedTuple):
-    consumed: int
+    characters_consumed: int
+    lines_consumed: int
     trailing: str
 
 
@@ -45,9 +46,9 @@ def read_word(content: str) -> Tuple[str, Consumption]:
             word += char
             consumed += 1
         else:
-            return word, Consumption(consumed, content[len(word) :])
+            return word, Consumption(consumed, 0, content[len(word) :])
 
-    return word, Consumption(consumed, "")
+    return word, Consumption(consumed, 0, "")
 
 
 def parse_string(context: Context, content: str) -> Tuple[str, Consumption]:
@@ -63,7 +64,7 @@ def parse_string(context: Context, content: str) -> Tuple[str, Consumption]:
     for char in content:
         consumed += 1
         if char == '"':
-            return ret, Consumption(consumed, content[len(ret) + 1 :])
+            return ret, Consumption(consumed, 0, content[len(ret) + 1 :])
         if char == "\n":
             raise ValueError(
                 "Attempted to span a string across lines at {}".format(
@@ -90,7 +91,7 @@ def parse_list(context: Context, content: str) -> Tuple[List[str], Consumption]:
         element, consumption = parse_string(
             context.from_self_with_offset(consumed), content
         )
-        consumed += consumption.consumed
+        consumed += consumption.characters_consumed
         content = consumption.trailing
         if not content:
             raise ValueError("Malformed list")
@@ -117,13 +118,13 @@ def parse_list(context: Context, content: str) -> Tuple[List[str], Consumption]:
         content = content[1:]
         consumed += 1
 
-    return elements, Consumption(consumed, content)
+    return elements, Consumption(consumed, 0, content)
 
 
 def parse_argument(context: Context, content: str) -> Tuple[Argument, Consumption]:
     name, consumption = read_word(content)
     content = consumption.trailing
-    consumed = consumption.consumed
+    consumed = consumption.characters_consumed
     if not content:
         raise ValueError(
             "Unable to parse argument with name {} at {}".format(
@@ -143,19 +144,19 @@ def parse_argument(context: Context, content: str) -> Tuple[Argument, Consumptio
     if content[0] == '"':
         value, consumption = parse_string(call_context, content)
         content = consumption.trailing
-        consumed += consumption.consumed
+        consumed += consumption.characters_consumed
         values = [value]
     elif content[0] == "[":
         values, consumption = parse_list(call_context, content)
         content = consumption.trailing
-        consumed += consumption.consumed
+        consumed += consumption.characters_consumed
     else:
         value, consumption = read_word(content)
         content = consumption.trailing
-        consumed += consumption.consumed
+        consumed += consumption.characters_consumed
         values = [value]
 
-    return Argument(name, values), Consumption(consumed, content)
+    return Argument(name, values), Consumption(consumed, 0, content)
 
 
 def parse_arguments(
@@ -176,7 +177,7 @@ def parse_arguments(
             context.from_self_with_offset(consumed), content
         )
         content = consumption.trailing
-        consumed += consumption.consumed
+        consumed += consumption.characters_consumed
         if not content:
             raise ValueError(
                 "malformed function call at {}".format(context.info_str(consumed))
@@ -213,13 +214,13 @@ def parse_arguments(
         content = content[1:]
         consumed += 1
 
-    return arguments, Consumption(consumed, content)
+    return arguments, Consumption(consumed, 0, content)
 
 
 def parse_function(context: Context, content: str) -> Tuple[Function, Consumption]:
     name, consumption = read_word(content)
     content = consumption.trailing
-    consumed = consumption.consumed + context.base_character
+    consumed = consumption.characters_consumed + context.base_character
     if not content:
         raise ValueError(
             'malformed function with name "{}" at {}'.format(
@@ -231,7 +232,7 @@ def parse_function(context: Context, content: str) -> Tuple[Function, Consumptio
         Context(line=context.line, base_character=consumed), content
     )
     content = consumption.trailing
-    consumed += consumption.consumed
+    consumed += consumption.characters_consumed
     if content:
         raise ValueError(
             'malformed function with name "{}" at {}'.format(
@@ -241,13 +242,13 @@ def parse_function(context: Context, content: str) -> Tuple[Function, Consumptio
 
     return (
         Function(name=name, arguments=arguments, true=None, false=None),
-        Consumption(consumed=consumed, trailing=""),
+        Consumption(characters_consumed=consumed, lines_consumed=0, trailing=""),
     )
 
 
 def parse_block(
     context: Context, content: str, expected_indent: int
-) -> Tuple[Block, Consumption, int]:
+) -> Tuple[Block, Consumption]:
     lines = content.split("\n")
     functions: List[Function] = []
     consumed = 0
@@ -273,8 +274,11 @@ def parse_block(
                 )
                 return (
                     Block(functions=functions),
-                    Consumption(consumed=consumed, trailing="\n".join(lines[i + 1 :])),
-                    i + total_lines_consumed,
+                    Consumption(
+                        characters_consumed=consumed,
+                        lines_consumed=i + total_lines_consumed,
+                        trailing="\n".join(lines[i + 1 :]),
+                    ),
                 )
 
         # Done after because we're not consuming the next line
@@ -283,15 +287,15 @@ def parse_block(
         function, consumption = parse_function(
             Context(line=i + total_lines_consumed, base_character=consumed), line
         )
-        consumed += consumption.consumed
+        consumed += consumption.characters_consumed
         if function.name in {"IF_TRUE", "IF_FALSE"}:
-            block, consumption, lines_consumed = parse_block(
+            block, consumption = parse_block(
                 Context(line=i + total_lines_consumed + 1, base_character=consumed),
                 "\n".join(lines[i + 1 :]),
                 expected_indent + INDENT,
             )
-            consumed += consumption.consumed
-            total_lines_consumed += lines_consumed
+            consumed += consumption.characters_consumed
+            total_lines_consumed += consumption.lines_consumed
             lines = consumption.trailing.split("\n")
 
         # Newline
@@ -306,8 +310,7 @@ def parse_block(
 
     return (
         Block(functions=functions),
-        Consumption(consumed, content),
-        total_lines_consumed,
+        Consumption(consumed, total_lines_consumed, content),
     )
 
 
