@@ -40,6 +40,20 @@ class Function:
         self.true = None
         self.false = None
 
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, Function):
+            return False
+
+        return (
+            self.name == other.name
+            and self.arguments == other.arguments
+            and self.true == other.true
+            and self.false == other.false
+        )
+
+    def __ne__(self, other: Any) -> bool:
+        return not self == other
+
     def __repr__(self) -> str:
         return (
             f"Function(name={self.name}, arguments={self.arguments}, "
@@ -310,7 +324,7 @@ def parse_block(
                     block,
                     Consumption(
                         characters_consumed=consumed,
-                        lines_consumed=i + total_lines_consumed,
+                        lines_consumed=i + total_lines_consumed + 1,
                         trailing="\n".join(lines[i + 1 :]),
                     ),
                 )
@@ -342,6 +356,7 @@ def parse_block(
 
         # Newline
         consumed += 1
+        total_lines_consumed += 1
 
         if append:
             block.functions.append(function)
