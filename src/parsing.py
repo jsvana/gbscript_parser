@@ -31,11 +31,20 @@ class Argument(NamedTuple):
     values: List[str]
 
 
-class Function(NamedTuple):
-    name: str
-    arguments: List[Argument]
-    true: Optional[Block]
-    false: Optional[Block]
+class Function:
+    __slots__ = ["name", "arguments", "true", "false"]
+
+    def __init__(self, name: str, arguments: List[Argument]) -> None:
+        self.name = name
+        self.arguments = arguments
+        self.true = None
+        self.false = None
+
+    def __repr__(self) -> str:
+        return (
+            f"Function(name={self.name}, arguments={self.arguments}, "
+            f"true={self.true}, false={self.false})"
+        )
 
 
 def read_word(content: str) -> Tuple[str, Consumption]:
@@ -267,7 +276,7 @@ def parse_function(context: Context, content: str) -> Tuple[Function, Consumptio
         )
 
     return (
-        Function(name=name, arguments=arguments, true=None, false=None),
+        Function(name=name, arguments=arguments),
         Consumption(characters_consumed=consumed, lines_consumed=0, trailing=""),
     )
 
@@ -276,9 +285,10 @@ def parse_block(
     context: Context, content: str, expected_indent: int
 ) -> Tuple[Block, Consumption]:
     lines = content.split("\n")
-    functions: List[Function] = []
     consumed = 0
     total_lines_consumed = context.line
+
+    block = Block(functions=[])
 
     for i, line in enumerate(lines):
         if not line:
@@ -294,12 +304,10 @@ def parse_block(
         line = line[c:]
 
         if c < expected_indent:
-            if functions and functions[-1].name != "EVENT_END":
-                functions.append(
-                    Function(name="EVENT_END", arguments=[], true=None, false=None)
-                )
+            if block.functions and block.functions[-1].name != "EVENT_END":
+                block.functions.append(Function(name="EVENT_END", arguments=[]))
                 return (
-                    Block(functions=functions),
+                    block,
                     Consumption(
                         characters_consumed=consumed,
                         lines_consumed=i + total_lines_consumed,
@@ -310,16 +318,24 @@ def parse_block(
         # Done after because we're not consuming the next line
         consumed += c
 
+        append = True
         function, consumption = parse_function(
             Context(line=i + total_lines_consumed, base_character=consumed), line
         )
         consumed += consumption.characters_consumed
         if function.name in {"IF_TRUE", "IF_FALSE"}:
-            block, consumption = parse_block(
+            append = False
+            child_block, consumption = parse_block(
                 Context(line=i + total_lines_consumed + 1, base_character=consumed),
                 "\n".join(lines[i + 1 :]),
                 expected_indent + INDENT,
             )
+
+            if function.name == "IF_TRUE":
+                block.functions[-1].true = child_block
+            else:
+                block.functions[-1].false = child_block
+
             consumed += consumption.characters_consumed
             total_lines_consumed += consumption.lines_consumed
             lines = consumption.trailing.split("\n")
@@ -327,15 +343,14 @@ def parse_block(
         # Newline
         consumed += 1
 
-        functions.append(function)
+        if append:
+            block.functions.append(function)
 
-    if functions and functions[-1].name != "EVENT_END":
-        functions.append(
-            Function(name="EVENT_END", arguments=[], true=None, false=None)
-        )
+    if block.functions and block.functions[-1].name != "EVENT_END":
+        block.functions.append(Function(name="EVENT_END", arguments=[]))
 
     return (
-        Block(functions=functions),
+        block,
         Consumption(
             characters_consumed=consumed,
             lines_consumed=total_lines_consumed,
