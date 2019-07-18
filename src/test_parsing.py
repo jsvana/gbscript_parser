@@ -207,14 +207,15 @@ class ParserTests(unittest.TestCase):
             parsing.Function(
                 name="foo",
                 arguments=[parsing.Argument(name="asdf", values=["bar"])],
-                block=None,
+                true=None,
+                false=None,
             ),
         )
 
         function = parsing.parse_function(parsing.Context(0, 0), "foo()")
 
         self.assertEqual(
-            function, parsing.Function(name="foo", arguments=[], block=None)
+            function, parsing.Function(name="foo", arguments=[], true=None, false=None)
         )
 
         with self.assertRaises(ValueError):
@@ -223,8 +224,8 @@ class ParserTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             parsing.parse_function(parsing.Context(0, 0), "foo()asdf")
 
-    def test_parse(self) -> None:
-        block = parsing.parse('foo(asdf="bar")\nfunc2(a="")')
+    def test_parse_block(self) -> None:
+        block = parsing.parse_block('foo(asdf="bar")\nfunc2(a="")')
         self.assertEqual(
             block,
             parsing.Block(
@@ -232,19 +233,23 @@ class ParserTests(unittest.TestCase):
                     parsing.Function(
                         name="foo",
                         arguments=[parsing.Argument(name="asdf", values=["bar"])],
-                        block=None,
+                        true=None,
+                        false=None,
                     ),
                     parsing.Function(
                         name="func2",
                         arguments=[parsing.Argument(name="a", values=[""])],
-                        block=None,
+                        true=None,
+                        false=None,
                     ),
-                    parsing.Function(name="EVENT_END", arguments=[], block=None),
+                    parsing.Function(
+                        name="EVENT_END", arguments=[], true=None, false=None
+                    ),
                 ]
             ),
         )
 
-        block = parsing.parse('foo(asdf="bar")\nfunc2(a="")\n')
+        block = parsing.parse_block('foo(asdf="bar")\nfunc2(a="")\n')
         self.assertEqual(
             block,
             parsing.Block(
@@ -252,19 +257,23 @@ class ParserTests(unittest.TestCase):
                     parsing.Function(
                         name="foo",
                         arguments=[parsing.Argument(name="asdf", values=["bar"])],
-                        block=None,
+                        true=None,
+                        false=None,
                     ),
                     parsing.Function(
                         name="func2",
                         arguments=[parsing.Argument(name="a", values=[""])],
-                        block=None,
+                        true=None,
+                        false=None,
                     ),
-                    parsing.Function(name="EVENT_END", arguments=[], block=None),
+                    parsing.Function(
+                        name="EVENT_END", arguments=[], true=None, false=None
+                    ),
                 ]
             ),
         )
 
-        block = parsing.parse('foo(asdf="bar")\nfunc2(a=["a", "b"])\n')
+        block = parsing.parse_block('foo(asdf="bar")\nfunc2(a=["a", "b"])\n')
         self.assertEqual(
             block,
             parsing.Block(
@@ -272,19 +281,25 @@ class ParserTests(unittest.TestCase):
                     parsing.Function(
                         name="foo",
                         arguments=[parsing.Argument(name="asdf", values=["bar"])],
-                        block=None,
+                        true=None,
+                        false=None,
                     ),
                     parsing.Function(
                         name="func2",
                         arguments=[parsing.Argument(name="a", values=["a", "b"])],
-                        block=None,
+                        true=None,
+                        false=None,
                     ),
-                    parsing.Function(name="EVENT_END", arguments=[], block=None),
+                    parsing.Function(
+                        name="EVENT_END", arguments=[], true=None, false=None
+                    ),
                 ]
             ),
         )
 
-        block = parsing.parse('foo(asdf="bar")\nfunc2(a=["a", "b"])\nEVENT_END()\n')
+        block = parsing.parse_block(
+            'foo(asdf="bar")\nfunc2(a=["a", "b"])\nEVENT_END()\n'
+        )
         self.assertEqual(
             block,
             parsing.Block(
@@ -292,14 +307,18 @@ class ParserTests(unittest.TestCase):
                     parsing.Function(
                         name="foo",
                         arguments=[parsing.Argument(name="asdf", values=["bar"])],
-                        block=None,
+                        true=None,
+                        false=None,
                     ),
                     parsing.Function(
                         name="func2",
                         arguments=[parsing.Argument(name="a", values=["a", "b"])],
-                        block=None,
+                        true=None,
+                        false=None,
                     ),
-                    parsing.Function(name="EVENT_END", arguments=[], block=None),
+                    parsing.Function(
+                        name="EVENT_END", arguments=[], true=None, false=None
+                    ),
                 ]
             ),
         )
