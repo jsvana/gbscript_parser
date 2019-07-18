@@ -46,9 +46,19 @@ def read_word(content: str) -> Tuple[str, Consumption]:
             word += char
             consumed += 1
         else:
-            return word, Consumption(consumed, 0, content[len(word) :])
+            return (
+                word,
+                Consumption(
+                    characters_consumed=consumed,
+                    lines_consumed=0,
+                    trailing=content[len(word) :],
+                ),
+            )
 
-    return word, Consumption(consumed, 0, "")
+    return (
+        word,
+        Consumption(characters_consumed=consumed, lines_consumed=0, trailing=""),
+    )
 
 
 def parse_string(context: Context, content: str) -> Tuple[str, Consumption]:
@@ -64,7 +74,14 @@ def parse_string(context: Context, content: str) -> Tuple[str, Consumption]:
     for char in content:
         consumed += 1
         if char == '"':
-            return ret, Consumption(consumed, 0, content[len(ret) + 1 :])
+            return (
+                ret,
+                Consumption(
+                    characters_consumed=consumed,
+                    lines_consumed=0,
+                    trailing=content[len(ret) + 1 :],
+                ),
+            )
         if char == "\n":
             raise ValueError(
                 "Attempted to span a string across lines at {}".format(
@@ -118,7 +135,10 @@ def parse_list(context: Context, content: str) -> Tuple[List[str], Consumption]:
         content = content[1:]
         consumed += 1
 
-    return elements, Consumption(consumed, 0, content)
+    return (
+        elements,
+        Consumption(characters_consumed=consumed, lines_consumed=0, trailing=content),
+    )
 
 
 def parse_argument(context: Context, content: str) -> Tuple[Argument, Consumption]:
@@ -156,7 +176,10 @@ def parse_argument(context: Context, content: str) -> Tuple[Argument, Consumptio
         consumed += consumption.characters_consumed
         values = [value]
 
-    return Argument(name, values), Consumption(consumed, 0, content)
+    return (
+        Argument(name, values),
+        Consumption(characters_consumed=consumed, lines_consumed=0, trailing=content),
+    )
 
 
 def parse_arguments(
@@ -214,7 +237,10 @@ def parse_arguments(
         content = content[1:]
         consumed += 1
 
-    return arguments, Consumption(consumed, 0, content)
+    return (
+        arguments,
+        Consumption(characters_consumed=consumed, lines_consumed=0, trailing=content),
+    )
 
 
 def parse_function(context: Context, content: str) -> Tuple[Function, Consumption]:
@@ -310,7 +336,11 @@ def parse_block(
 
     return (
         Block(functions=functions),
-        Consumption(consumed, total_lines_consumed, content),
+        Consumption(
+            characters_consumed=consumed,
+            lines_consumed=total_lines_consumed,
+            trailing=content,
+        ),
     )
 
 
