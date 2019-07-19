@@ -34,11 +34,17 @@ class Argument(NamedTuple):
 class Function:
     __slots__ = ["name", "arguments", "true", "false"]
 
-    def __init__(self, name: str, arguments: List[Argument]) -> None:
+    def __init__(
+        self,
+        name: str,
+        arguments: List[Argument],
+        true: Optional[Block] = None,
+        false: Optional[Block] = None,
+    ) -> None:
         self.name = name
         self.arguments = arguments
-        self.true = None
-        self.false = None
+        self.true = true
+        self.false = false
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Function):
@@ -295,18 +301,26 @@ def parse_function(context: Context, content: str) -> Tuple[Function, Consumptio
     )
 
 
+def append_event_end(block: Block) -> None:
+    if block.functions and block.functions[-1].name != "EVENT_END":
+        block.functions.append(Function(name="EVENT_END", arguments=[]))
+
+
 def parse_block(
-    context: Context, content: str, expected_indent: int
+    context: Context, lines: List[str], expected_indent: int
 ) -> Tuple[Block, Consumption]:
-    lines = content.split("\n")
+    # TODO(jsvana): add EVENT_END add after parsing everything instead
     consumed = 0
     total_lines_consumed = context.line
 
     block = Block(functions=[])
 
-    for i, line in enumerate(lines):
+    i = 0
+    while i < len(lines):
+        line = lines[i]
         if not line:
             # Takes care of the newline
+            i += 1
             consumed += 1
             total_lines_consumed += 1
             continue
@@ -318,16 +332,18 @@ def parse_block(
         line = line[c:]
 
         if c < expected_indent:
-            if block.functions and block.functions[-1].name != "EVENT_END":
-                block.functions.append(Function(name="EVENT_END", arguments=[]))
-                return (
-                    block,
-                    Consumption(
-                        characters_consumed=consumed,
-                        lines_consumed=i + total_lines_consumed + 1,
-                        trailing="\n".join(lines[i + 1 :]),
-                    ),
-                )
+            append_event_end(block)
+
+            lines_consumed = i
+
+            return (
+                block,
+                Consumption(
+                    characters_consumed=consumed,
+                    lines_consumed=lines_consumed,
+                    trailing="",
+                ),
+            )
 
         # Done after because we're not consuming the next line
         consumed += c
@@ -341,18 +357,20 @@ def parse_block(
             append = False
             child_block, consumption = parse_block(
                 Context(line=i + total_lines_consumed + 1, base_character=consumed),
-                "\n".join(lines[i + 1 :]),
+                lines[i + 1 :],
                 expected_indent + INDENT,
             )
 
+            last_function = block.functions[-1]
+
             if function.name == "IF_TRUE":
-                block.functions[-1].true = child_block
+                last_function.true = child_block
             else:
-                block.functions[-1].false = child_block
+                last_function.false = child_block
 
             consumed += consumption.characters_consumed
             total_lines_consumed += consumption.lines_consumed
-            lines = consumption.trailing.split("\n")
+            i += consumption.lines_consumed
 
         # Newline
         consumed += 1
@@ -361,19 +379,20 @@ def parse_block(
         if append:
             block.functions.append(function)
 
-    if block.functions and block.functions[-1].name != "EVENT_END":
-        block.functions.append(Function(name="EVENT_END", arguments=[]))
+        i += 1
+
+    append_event_end(block)
 
     return (
         block,
         Consumption(
             characters_consumed=consumed,
             lines_consumed=total_lines_consumed,
-            trailing=content,
+            trailing="",
         ),
     )
 
 
 def parse(content: str) -> Block:
-    block, *_ = parse_block(Context(line=0, base_character=0), content, 0)
+    block, *_ = parse_block(Context(line=0, base_character=0), content.split("\n"), 0)
     return block

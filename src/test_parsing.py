@@ -229,7 +229,7 @@ class ParserTests(unittest.TestCase):
 
     def test_parse_block(self) -> None:
         block, consumption = parsing.parse_block(
-            parsing.Context(0, 0), 'foo(asdf="bar")\nfunc2(a="")', 0
+            parsing.Context(0, 0), ['foo(asdf="bar")', 'func2(a="")'], 0
         )
         self.assertEqual(
             block,
@@ -251,7 +251,7 @@ class ParserTests(unittest.TestCase):
         self.assertEqual(consumption.lines_consumed, 2)
 
         block, consumption = parsing.parse_block(
-            parsing.Context(0, 0), 'foo(asdf="bar")\nfunc2(a="")\n', 0
+            parsing.Context(0, 0), ['foo(asdf="bar")', 'func2(a="")'], 0
         )
         self.assertEqual(
             block,
@@ -271,7 +271,7 @@ class ParserTests(unittest.TestCase):
         )
 
         block, consumption = parsing.parse_block(
-            parsing.Context(0, 0), 'foo(asdf="bar")\nfunc2(a=["a", "b"])\n', 0
+            parsing.Context(0, 0), ['foo(asdf="bar")', 'func2(a=["a", "b"])'], 0
         )
         self.assertEqual(
             block,
@@ -292,7 +292,7 @@ class ParserTests(unittest.TestCase):
 
         block, consumption = parsing.parse_block(
             parsing.Context(0, 0),
-            'foo(asdf="bar")\nfunc2(a=["a", "b"])\nEVENT_END()\n',
+            ['foo(asdf="bar")', 'func2(a=["a", "b"])', "EVENT_END()"],
             0,
         )
         self.assertEqual(
@@ -306,6 +306,214 @@ class ParserTests(unittest.TestCase):
                     parsing.Function(
                         name="func2",
                         arguments=[parsing.Argument(name="a", values=["a", "b"])],
+                    ),
+                    parsing.Function(name="EVENT_END", arguments=[]),
+                ]
+            ),
+        )
+
+        block, consumption = parsing.parse_block(
+            parsing.Context(0, 0),
+            [
+                'foo(asdf="bar")',
+                "IF_TRUE()",
+                '  asdf(a=["a", "b"])',
+                "IF_FALSE()",
+                "  fdsa()",
+            ],
+            0,
+        )
+
+        self.assertEqual(
+            block,
+            parsing.Block(
+                functions=[
+                    parsing.Function(
+                        name="foo",
+                        arguments=[parsing.Argument(name="asdf", values=["bar"])],
+                        true=parsing.Block(
+                            functions=[
+                                parsing.Function(
+                                    name="asdf",
+                                    arguments=[
+                                        parsing.Argument(name="a", values=["a", "b"])
+                                    ],
+                                ),
+                                parsing.Function(name="EVENT_END", arguments=[]),
+                            ]
+                        ),
+                        false=parsing.Block(
+                            functions=[
+                                parsing.Function(name="fdsa", arguments=[]),
+                                parsing.Function(name="EVENT_END", arguments=[]),
+                            ]
+                        ),
+                    ),
+                    parsing.Function(name="EVENT_END", arguments=[]),
+                ]
+            ),
+        )
+
+        block, consumption = parsing.parse_block(
+            parsing.Context(0, 0),
+            [
+                'foo(asdf="bar")',
+                "IF_TRUE()",
+                '  asdf(a=["a", "b"])',
+                "IF_FALSE()",
+                "  fdsa()",
+                '  bar(a="b")',
+                "  IF_TRUE()",
+                '    baz(b="c")',
+                "  IF_FALSE()",
+                '    fdsa(c="d")',
+            ],
+            0,
+        )
+
+        self.assertEqual(
+            block,
+            parsing.Block(
+                functions=[
+                    parsing.Function(
+                        name="foo",
+                        arguments=[parsing.Argument(name="asdf", values=["bar"])],
+                        true=parsing.Block(
+                            functions=[
+                                parsing.Function(
+                                    name="asdf",
+                                    arguments=[
+                                        parsing.Argument(name="a", values=["a", "b"])
+                                    ],
+                                ),
+                                parsing.Function(name="EVENT_END", arguments=[]),
+                            ]
+                        ),
+                        false=parsing.Block(
+                            functions=[
+                                parsing.Function(name="fdsa", arguments=[]),
+                                parsing.Function(
+                                    name="bar",
+                                    arguments=[
+                                        parsing.Argument(name="a", values=["b"])
+                                    ],
+                                    true=parsing.Block(
+                                        functions=[
+                                            parsing.Function(
+                                                name="baz",
+                                                arguments=[
+                                                    parsing.Argument(
+                                                        name="b", values=["c"]
+                                                    )
+                                                ],
+                                            ),
+                                            parsing.Function(
+                                                name="EVENT_END", arguments=[]
+                                            ),
+                                        ]
+                                    ),
+                                    false=parsing.Block(
+                                        functions=[
+                                            parsing.Function(
+                                                name="fdsa",
+                                                arguments=[
+                                                    parsing.Argument(
+                                                        name="c", values=["d"]
+                                                    )
+                                                ],
+                                            ),
+                                            parsing.Function(
+                                                name="EVENT_END", arguments=[]
+                                            ),
+                                        ]
+                                    ),
+                                ),
+                                parsing.Function(name="EVENT_END", arguments=[]),
+                            ]
+                        ),
+                    ),
+                    parsing.Function(name="EVENT_END", arguments=[]),
+                ]
+            ),
+        )
+
+        block, consumption = parsing.parse_block(
+            parsing.Context(0, 0),
+            [
+                'foo(asdf="bar")',
+                "IF_TRUE()",
+                '  asdf(a=["a", "b"])',
+                '  bar(a="b")',
+                "  IF_TRUE()",
+                '    baz(b="c")',
+                "  IF_FALSE()",
+                '    fdsa(c="d")',
+                "IF_FALSE()",
+                "  fdsa()",
+            ],
+            0,
+        )
+
+        self.assertEqual(
+            block,
+            parsing.Block(
+                functions=[
+                    parsing.Function(
+                        name="foo",
+                        arguments=[parsing.Argument(name="asdf", values=["bar"])],
+                        true=parsing.Block(
+                            functions=[
+                                parsing.Function(
+                                    name="asdf",
+                                    arguments=[
+                                        parsing.Argument(name="a", values=["a", "b"])
+                                    ],
+                                ),
+                                parsing.Function(
+                                    name="bar",
+                                    arguments=[
+                                        parsing.Argument(name="a", values=["b"])
+                                    ],
+                                    true=parsing.Block(
+                                        functions=[
+                                            parsing.Function(
+                                                name="baz",
+                                                arguments=[
+                                                    parsing.Argument(
+                                                        name="b", values=["c"]
+                                                    )
+                                                ],
+                                            ),
+                                            parsing.Function(
+                                                name="EVENT_END", arguments=[]
+                                            ),
+                                        ]
+                                    ),
+                                    false=parsing.Block(
+                                        functions=[
+                                            parsing.Function(
+                                                name="fdsa",
+                                                arguments=[
+                                                    parsing.Argument(
+                                                        name="c", values=["d"]
+                                                    )
+                                                ],
+                                            ),
+                                            parsing.Function(
+                                                name="EVENT_END", arguments=[]
+                                            ),
+                                        ]
+                                    ),
+                                ),
+                                parsing.Function(name="EVENT_END", arguments=[]),
+                            ]
+                        ),
+                        false=parsing.Block(
+                            functions=[
+                                parsing.Function(name="fdsa", arguments=[]),
+                                parsing.Function(name="EVENT_END", arguments=[]),
+                            ]
+                        ),
                     ),
                     parsing.Function(name="EVENT_END", arguments=[]),
                 ]
