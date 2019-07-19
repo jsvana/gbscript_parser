@@ -210,11 +210,13 @@ class ParserTests(unittest.TestCase):
                 name="foo", arguments=[parsing.Argument(name="asdf", values=["bar"])]
             ),
         )
+        self.assertEqual(function.name, "EVENT_FOO")
         self.assertEqual(consumption.characters_consumed, 15)
         self.assertEqual(consumption.lines_consumed, 0)
         self.assertEqual(consumption.trailing, "")
 
         function, consumption = parsing.parse_function(parsing.Context(0, 0), "foo()")
+        self.assertEqual(function.name, "EVENT_FOO")
         self.assertEqual(consumption.characters_consumed, 5)
         self.assertEqual(consumption.lines_consumed, 0)
         self.assertEqual(consumption.trailing, "")

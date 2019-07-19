@@ -41,6 +41,9 @@ class Function:
         true: Optional[Block] = None,
         false: Optional[Block] = None,
     ) -> None:
+        name = name.upper()
+        if not name.startswith("EVENT_"):
+            name = f"EVENT_{name}"
         self.name = name
         self.arguments = arguments
         self.true = true
@@ -353,7 +356,7 @@ def parse_block(
             Context(line=i + total_lines_consumed, base_character=consumed), line
         )
         consumed += consumption.characters_consumed
-        if function.name in {"IF_TRUE", "IF_FALSE"}:
+        if function.name in {"EVENT_IF_TRUE", "EVENT_IF_FALSE"}:
             append = False
             child_block, consumption = parse_block(
                 Context(line=i + total_lines_consumed + 1, base_character=consumed),
@@ -363,7 +366,7 @@ def parse_block(
 
             last_function = block.functions[-1]
 
-            if function.name == "IF_TRUE":
+            if function.name == "EVENT_IF_TRUE":
                 last_function.true = child_block
             else:
                 last_function.false = child_block
