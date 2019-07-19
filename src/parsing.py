@@ -397,5 +397,7 @@ def parse_block(
 
 
 def parse(content: str) -> Block:
-    block, *_ = parse_block(Context(line=0, base_character=0), content.split("\n"), 0)
+    block, *_ = parse_block(
+        Context(line=0, base_character=0), content.split("\n"), expected_indent=0
+    )
     return block
