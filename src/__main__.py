@@ -15,24 +15,25 @@ def main():
         type=pathlib.Path,
         help="Name of metafile to parse",
     )
+    parser.add_argument(
+        "--output-file",
+        "-o",
+        metavar="FILENAME",
+        type=pathlib.Path,
+        help="Write new script to specified file",
+    )
     args = parser.parse_args()
 
     metadata = GbsProjectMetadata.from_file(args.gbsproj_metafile)
 
     metadata.parse()
 
-    print(metadata.to_json())
-
-    return 1
-
-    with open(metadata.scripts["Intro"]) as f:
-        try:
-            block = parse(f.read())
-        except ValueError as e:
-            print(f'Error parsing "intro.gbscript": {e}', file=sys.stderr)
-            return 1
-
-    print(block.to_dict(metadata.project.scene_names_to_ids))
+    output = metadata.to_json()
+    if args.output_file is None:
+        print(output)
+    else:
+        with args.output_file.open("w") as f:
+            f.write(output)
 
     return 0
 
