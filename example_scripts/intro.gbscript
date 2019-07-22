@@ -1,7 +1,7 @@
 actor_hide(actorId="player")
 await_input(input=["a", "b", "select", "start"])
 text(text="New game...")
-switch_scene(sceneId="scene_one", x="0", y="0", direction="", fadeSpeed="2")
+switch_scene(sceneName="Title Screen", x="0", y="0", direction="", fadeSpeed="2")
 if_value_compare(vectorX="12", operator="==", vectorY="12")
 if_true()
   text(text="New game...")

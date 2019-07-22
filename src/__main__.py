@@ -23,16 +23,14 @@ def main():
 
     print(metadata.project.scene_names_to_ids)
 
-    return 1
-
-    with open(sys.argv[1]) as f:
+    with open(metadata.scripts["Intro"]) as f:
         try:
             block = parse(f.read())
         except ValueError as e:
-            print(f'Error parsing "{sys.argv[1]}": {e}', file=sys.stderr)
+            print(f'Error parsing "intro.gbscript": {e}', file=sys.stderr)
             return 1
 
-    print(block)
+    print(block.to_dict(metadata.project.scene_names_to_ids))
 
     return 0
 

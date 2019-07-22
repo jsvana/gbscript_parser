@@ -1,4 +1,5 @@
-from typing import Any, List, NamedTuple, Optional, Tuple
+import uuid
+from typing import Any, Dict, List, NamedTuple, Optional, Tuple
 
 INDENT = 2
 
@@ -24,6 +25,12 @@ class Block(NamedTuple):
     # Should be List[Function] but mypy doesn't support
     # recursive types
     functions: List[Any]
+
+    def to_dict(self, scene_names_to_ids: Dict[str, str]) -> List[Dict[str, Any]]:
+        ret = []
+        for function in self.functions:
+            ret.append(function.to_dict(scene_names_to_ids))
+        return ret
 
 
 class Argument(NamedTuple):
@@ -68,6 +75,32 @@ class Function:
             f"Function(name={self.name}, arguments={self.arguments}, "
             f"true={self.true}, false={self.false})"
         )
+
+    def to_dict(self, scene_names_to_ids: Dict[str, str]) -> Dict[str, Any]:
+        ret: Dict[str, Any] = {
+            "id": str(uuid.uuid4()),
+            "command": self.name,
+            "args": {},
+        }
+
+        for argument in self.arguments:
+            if argument.name == "sceneName":
+                # TODO(jsvana): handle missing scene name
+                ret["args"]["sceneId"] = scene_names_to_ids[argument.values[0]]
+                continue
+
+            if len(argument.values) == 1:
+                ret["args"][argument.name] = argument.values[0]
+            else:
+                ret["args"][argument.name] = argument.values
+
+        if self.true is not None:
+            ret["true"] = self.true.to_dict(scene_names_to_ids)
+
+        if self.false is not None:
+            ret["false"] = self.false.to_dict(scene_names_to_ids)
+
+        return ret
 
 
 def read_word(content: str) -> Tuple[str, Consumption]:

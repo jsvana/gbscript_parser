@@ -4,8 +4,10 @@ from typing import Any, Dict
 
 
 class GbsProjectMetadata:
-    def __init__(self, script_file: pathlib.Path, project_file: pathlib.Path) -> None:
-        self.script_file = script_file
+    def __init__(
+        self, scripts: Dict[str, pathlib.Path], project_file: pathlib.Path
+    ) -> None:
+        self.scripts = scripts
         self.project_file = project_file
 
         self.project = GbsProject.from_file(self.project_file)
@@ -15,10 +17,9 @@ class GbsProjectMetadata:
         with path.open("r") as f:
             data = json.load(f)
 
-        return cls(
-            script_file=pathlib.Path(data["script_file"]),
-            project_file=pathlib.Path(data["project_file"]),
-        )
+        scripts = {name: pathlib.Path(path) for name, path in data["scripts"].items()}
+
+        return cls(scripts=scripts, project_file=pathlib.Path(data["project_file"]))
 
 
 class GbsProject:
