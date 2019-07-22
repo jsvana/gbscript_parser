@@ -1,0 +1,6 @@
+{
+  "scripts": {
+    "Intro": "example_scripts/intro.gbscript",
+  }
+  "project_file": "example.gbsproj"
+}
