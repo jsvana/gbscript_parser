@@ -17,11 +17,13 @@ def main():
     )
     args = parser.parse_args()
 
-    print(str(uuid.uuid4()))
-
     metadata = GbsProjectMetadata.from_file(args.gbsproj_metafile)
 
-    print(metadata.project.scene_names_to_ids)
+    metadata.parse()
+
+    print(metadata.to_json())
+
+    return 1
 
     with open(metadata.scripts["Intro"]) as f:
         try:
