@@ -50,8 +50,12 @@ class GbsProject:
         self.scene_names_to_ids: Dict[str, str] = {}
         self.scene_indexes: Dict[str, int] = {}
         for i, scene in enumerate(self.data["scenes"]):
-            self.scene_names_to_ids[scene["name"]] = scene["id"]
-            self.scene_indexes[scene["name"]] = i
+            scene_name = scene["name"]
+            if scene_name in self.scene_names_to_ids:
+                raise ValueError(f'Scene name "{scene_name}" appears more than once')
+
+            self.scene_names_to_ids[scene_name] = scene["id"]
+            self.scene_indexes[scene_name] = i
 
     def set_scene_script(self, scene_name: str, script: Block) -> None:
         self.data["scenes"][self.scene_indexes[scene_name]]["script"] = script.to_dict(
