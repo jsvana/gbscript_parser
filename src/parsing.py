@@ -33,11 +33,25 @@ class Block(NamedTuple):
             ret.append(function.to_dict(scene_names_to_ids))
         return ret
 
+    def validate(self) -> None:
+        for function in self.functions:
+            function.validate()
+
+        if self.functions and self.functions[-1].name != "EVENT_END":
+            raise ValueError(
+                "block doesn't end with EVENT_END() at {}".format(
+                    self.context.info_str(0)
+                )
+            )
+
 
 class Argument(NamedTuple):
     name: str
     values: List[str]
     context: Context
+
+    def validate(self) -> None:
+        pass
 
 
 class Function:
@@ -113,6 +127,30 @@ class Function:
             ret["false"] = self.false.to_dict(scene_names_to_ids)
 
         return ret
+
+    def validate(self) -> None:
+        if self.true is not None:
+            if self.false is None:
+                raise ValueError(
+                    'function "{}" is missing an IF_FALSE() at {}'.format(
+                        self.name, self.context.info_str(0)
+                    )
+                )
+
+            self.true.validate()
+
+        if self.false is not None:
+            if self.true is None:
+                raise ValueError(
+                    'function "{}" is missing an IF_TRUE() at {}'.format(
+                        self.name, self.context.info_str(0)
+                    )
+                )
+
+            self.false.validate()
+
+        for argument in self.arguments:
+            argument.validate()
 
 
 def read_word(content: str) -> Tuple[str, Consumption]:
@@ -410,7 +448,7 @@ def parse_block(
         if function.name in {"EVENT_IF_TRUE", "EVENT_IF_FALSE"}:
             append = False
             child_block, consumption = parse_block(
-                Context(line=i + total_lines_consumed + 1, base_character=consumed),
+                Context(line=i + 1, base_character=consumed),
                 lines[i + 1 :],
                 expected_indent + INDENT,
             )
@@ -450,4 +488,7 @@ def parse(content: str) -> Block:
     block, *_ = parse_block(
         Context(line=0, base_character=0), content.split("\n"), expected_indent=0
     )
+
+    block.validate()
+
     return block

@@ -3,8 +3,7 @@ import pathlib
 import sys
 import uuid
 
-from .gbsproj_parser import GbsProjectMetadata
-from .parsing import parse
+from .gbsproj_parser import GbsProjectMetadata, ParseError
 
 
 def main():
@@ -26,7 +25,11 @@ def main():
 
     metadata = GbsProjectMetadata.from_file(args.gbsproj_metafile)
 
-    metadata.parse()
+    try:
+        metadata.parse()
+    except ParseError as e:
+        print('Error parsing "{}": {}'.format(e.path, e.message), file=sys.stderr)
+        return 1
 
     output = metadata.to_json()
     if args.output_file is None:

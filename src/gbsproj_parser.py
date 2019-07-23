@@ -5,6 +5,13 @@ from typing import Any, Dict
 from .parsing import Block, parse
 
 
+class ParseError(Exception):
+    def __init__(self, path, message) -> None:
+        super().__init__()
+        self.path = path
+        self.message = message
+
+
 class GbsProjectMetadata:
     def __init__(
         self, scripts: Dict[str, pathlib.Path], project_file: pathlib.Path
@@ -29,7 +36,12 @@ class GbsProjectMetadata:
     def parse(self) -> None:
         for scene_name, script_path in self.scripts.items():
             with script_path.open("r") as f:
-                self.project.set_scene_script(scene_name, parse(f.read()))
+                try:
+                    block = parse(f.read())
+                except ValueError as e:
+                    raise ParseError(str(script_path), str(e)) from e
+
+                self.project.set_scene_script(scene_name, block)
 
 
 class GbsProject:
