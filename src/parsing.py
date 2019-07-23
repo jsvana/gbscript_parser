@@ -412,7 +412,6 @@ def parse_block(
             # Takes care of the newline
             i += 1
             consumed += 1
-            line_consumed += 1
             total_lines_consumed += 1
             continue
 
@@ -421,6 +420,12 @@ def parse_block(
             c += 1
 
         line = line[c:]
+
+        # Comments
+        if line and line[0] == "#":
+            i += 1
+            consumed += len(line)
+            continue
 
         if c < expected_indent:
             append_event_end(block)

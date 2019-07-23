@@ -1,3 +1,4 @@
+# Here's a comment.
 actor_hide(actorId="player")
 await_input(input=["a", "b", "select", "start"])
 text(text="New game...")
