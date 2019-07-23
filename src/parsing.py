@@ -25,6 +25,7 @@ class Block(NamedTuple):
     # Should be List[Function] but mypy doesn't support
     # recursive types
     functions: List[Any]
+    context: Context
 
     def to_dict(self, scene_names_to_ids: Dict[str, str]) -> List[Dict[str, Any]]:
         ret = []
@@ -36,15 +37,17 @@ class Block(NamedTuple):
 class Argument(NamedTuple):
     name: str
     values: List[str]
+    context: Context
 
 
 class Function:
-    __slots__ = ["name", "arguments", "true", "false"]
+    __slots__ = ["name", "arguments", "context", "true", "false"]
 
     def __init__(
         self,
         name: str,
         arguments: List[Argument],
+        context: Context,
         true: Optional[Block] = None,
         false: Optional[Block] = None,
     ) -> None:
@@ -53,6 +56,7 @@ class Function:
             name = f"EVENT_{name}"
         self.name = name
         self.arguments = arguments
+        self.context = context
         self.true = true
         self.false = false
 
@@ -85,8 +89,16 @@ class Function:
 
         for argument in self.arguments:
             if argument.name == "sceneName":
-                # TODO(jsvana): handle missing scene name
-                ret["args"]["sceneId"] = scene_names_to_ids[argument.values[0]]
+                scene_name = argument.values[0]
+                scene_id = scene_names_to_ids.get(scene_name)
+                if scene_id is None:
+                    raise ValueError(
+                        'unknown scene name "{}" at {}'.format(
+                            scene_name, argument.context.info_str(0)
+                        )
+                    )
+
+                ret["args"]["sceneId"] = scene_id
                 continue
 
             if len(argument.values) == 1:
@@ -212,14 +224,14 @@ def parse_argument(context: Context, content: str) -> Tuple[Argument, Consumptio
     consumed = consumption.characters_consumed
     if not content:
         raise ValueError(
-            "Unable to parse argument with name {} at {}".format(
+            "unable to parse argument with name {} at {}".format(
                 name, context.info_str(consumed)
             )
         )
 
     if content[0] != "=":
         raise ValueError(
-            'Bad argument "{}" at {}'.format(name, context.info_str(consumed))
+            'bad argument "{}" at {}'.format(name, context.info_str(consumed))
         )
 
     content = content[1:]
@@ -242,7 +254,7 @@ def parse_argument(context: Context, content: str) -> Tuple[Argument, Consumptio
         values = [value]
 
     return (
-        Argument(name, values),
+        Argument(name, values, context),
         Consumption(characters_consumed=consumed, lines_consumed=0, trailing=content),
     )
 
@@ -332,14 +344,16 @@ def parse_function(context: Context, content: str) -> Tuple[Function, Consumptio
         )
 
     return (
-        Function(name=name, arguments=arguments),
+        Function(name=name, arguments=arguments, context=context),
         Consumption(characters_consumed=consumed, lines_consumed=0, trailing=""),
     )
 
 
 def append_event_end(block: Block) -> None:
     if block.functions and block.functions[-1].name != "EVENT_END":
-        block.functions.append(Function(name="EVENT_END", arguments=[]))
+        block.functions.append(
+            Function(name="EVENT_END", arguments=[], context=Context(-1, -1))
+        )
 
 
 def parse_block(
@@ -349,15 +363,18 @@ def parse_block(
     consumed = 0
     total_lines_consumed = context.line
 
-    block = Block(functions=[])
+    block = Block(functions=[], context=context)
 
     i = 0
     while i < len(lines):
+        line_consumed = 0
+
         line = lines[i]
         if not line:
             # Takes care of the newline
             i += 1
             consumed += 1
+            line_consumed += 1
             total_lines_consumed += 1
             continue
 
@@ -383,10 +400,11 @@ def parse_block(
 
         # Done after because we're not consuming the next line
         consumed += c
+        line_consumed += c
 
         append = True
         function, consumption = parse_function(
-            Context(line=i + total_lines_consumed, base_character=consumed), line
+            Context(line=i + total_lines_consumed, base_character=line_consumed), line
         )
         consumed += consumption.characters_consumed
         if function.name in {"EVENT_IF_TRUE", "EVENT_IF_FALSE"}:
@@ -410,7 +428,6 @@ def parse_block(
 
         # Newline
         consumed += 1
-        total_lines_consumed += 1
 
         if append:
             block.functions.append(function)
