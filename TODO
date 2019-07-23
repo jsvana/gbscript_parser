@@ -1,7 +1,7 @@
 # Error handling
-[ ] bad scene names
-[ ] conditions missing branches
+[x] bad scene names
+[x] conditions missing branches
 [ ] multiple instances of the same scene name
 
 # Features
-[ ] write proj to file
+[x] write proj to file
