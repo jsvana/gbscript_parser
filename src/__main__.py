@@ -1,4 +1,5 @@
 import argparse
+import os
 import pathlib
 import sys
 import uuid
@@ -22,6 +23,8 @@ def main():
         help="Write new script to specified file",
     )
     args = parser.parse_args()
+
+    os.chdir(args.gbsproj_metafile.parent)
 
     metadata = GbsProjectMetadata.from_file(args.gbsproj_metafile)
 

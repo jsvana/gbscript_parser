@@ -7,3 +7,9 @@
 [x] write proj to file
 [x] comments
 [ ] script includes
+[ ] actorName instead of actorId
+[ ] function defaults
+[ ] assert functions have right arguments
+
+# Bugfixes
+[ ] ensure arguments get cast to ints when expected (only some functions)
