@@ -47,7 +47,7 @@ class Block(NamedTuple):
 
 class Argument(NamedTuple):
     name: str
-    values: List[str]
+    values: List[Any]
     context: Context
 
     def validate(self) -> None:
@@ -56,6 +56,15 @@ class Argument(NamedTuple):
 
 class Function:
     __slots__ = ["name", "arguments", "context", "true", "false"]
+
+    transformations = {
+        "EVENT_OVERLAY_SHOW": {"x": int, "y": int},
+        "EVENT_OVERLAY_MOVE_TO": {"x": int, "y": int},
+        "EVENT_WAIT": {"time": int},
+        "EVENT_SWITCH_SCENE": {"x": int, "y": int},
+    }
+
+    force_list = {"EVENT_AWAIT_INPUT"}
 
     def __init__(
         self,
@@ -73,6 +82,30 @@ class Function:
         self.context = context
         self.true = true
         self.false = false
+
+        self.transform_arguments()
+
+    def transform_arguments(self) -> None:
+        transformations = self.transformations.get(self.name)
+        if transformations is None:
+            return
+
+        new_arguments = []
+        for argument in self.arguments:
+            transformation = transformations.get(argument.name)
+            if transformation is None:
+                new_arguments.append(argument)
+                continue
+
+            new_arguments.append(
+                Argument(
+                    argument.name,
+                    [transformation(v) for v in argument.values],
+                    argument.context,
+                )
+            )
+
+        self.arguments = new_arguments
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Function):
@@ -95,11 +128,10 @@ class Function:
         )
 
     def to_dict(self, scene_names_to_ids: Dict[str, str]) -> Dict[str, Any]:
-        ret: Dict[str, Any] = {
-            "id": str(uuid.uuid4()),
-            "command": self.name,
-            "args": {},
-        }
+        ret: Dict[str, Any] = {"id": str(uuid.uuid4()), "command": self.name}
+
+        if self.name != "EVENT_END":
+            ret["args"] = {}
 
         for argument in self.arguments:
             if argument.name == "sceneName":
@@ -115,7 +147,7 @@ class Function:
                 ret["args"]["sceneId"] = scene_id
                 continue
 
-            if len(argument.values) == 1:
+            if len(argument.values) == 1 and self.name not in self.force_list:
                 ret["args"][argument.name] = argument.values[0]
             else:
                 ret["args"][argument.name] = argument.values
