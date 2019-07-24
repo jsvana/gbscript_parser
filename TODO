@@ -12,4 +12,4 @@
 [ ] assert functions have right arguments
 
 # Bugfixes
-[ ] ensure arguments get cast to ints when expected (only some functions)
+[x] ensure arguments get cast to ints when expected (only some functions)
